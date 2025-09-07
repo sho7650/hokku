@@ -59,6 +59,12 @@ make test
 - `docs/IMPROVED_DESIGN.md` - Initial Clean Architecture design (deprecated)
 - `SPECIFICATION.md` - Complete project specification in Japanese
 
+**For implementation planning and project management:**
+
+- `docs/IMPLEMENTATION_WORKFLOW.md` - Comprehensive 5-phase TDD implementation workflow
+- `docs/PROJECT_EXECUTION_PLAN.md` - Detailed project management with critical path analysis
+- `docs/QUALITY_GATES_FRAMEWORK.md` - 6-gate quality assurance and validation system
+
 ### Quick Architecture Summary
 
 The application follows SOLID principles with interface-based dependency injection:
