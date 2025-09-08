@@ -1,37 +1,283 @@
-# Hokku Project Execution Plan
+# Hokku MVP優先実行計画
 
-**Version:** 1.0.0  
-**Date:** 2025-09-07  
+**Version:** 2.0.0  
+**Date:** 2025-09-08  
 **Author:** Project Management Team  
-**Complements:** IMPLEMENTATION_WORKFLOW.md
+**Approach:** MVP-First Progressive Implementation
 
 ---
 
 ## Executive Summary
 
-This execution plan provides detailed project management guidance for the Hokku webhook file storage service implementation. The plan includes dependency mapping, critical path analysis, resource optimization, risk assessment, and contingency strategies.
+MVP優先アプローチによるHokku webhook file storageサービスの実行計画です。「動く→改善→抽象化」の段階的実装により、迅速な価値提供と必要性駆動の機能追加を実現します。
 
 **Key Metrics:**
-- **Sequential Duration**: 15 days
-- **Optimized Duration**: 8.5 days (43% reduction)
-- **Critical Path**: Phase 1 → Phase 2 → Phase 3 → Phase 5
-- **Resource Efficiency**: 65% parallel execution capability
-- **Risk Level**: Medium (well-mitigated)
+- **MVP Duration**: 30分 (動作するサービス)
+- **Basic Quality**: +1時間 (Phase 1)
+- **Production Ready**: +1時間 (Phase 2) 
+- **Total MVP Time**: 2.5時間 (従来比 97%短縮)
+- **Full Implementation**: 必要に応じて (Phase 3)
+- **Risk Level**: Low (段階的リスク管理)
 
 ---
 
 ## Table of Contents
 
-1. [Task Dependencies & Critical Path](#task-dependencies--critical-path)
-2. [Time Estimates & Scheduling](#time-estimates--scheduling)
-3. [Resource Allocation Strategy](#resource-allocation-strategy)
-4. [Risk Assessment & Mitigation](#risk-assessment--mitigation)
-5. [Gantt Chart Breakdown](#gantt-chart-breakdown)
-6. [Resource Optimization](#resource-optimization)
-7. [Quality Assurance Timeline](#quality-assurance-timeline)
-8. [Contingency Planning](#contingency-planning)
-9. [Team Coordination Guidelines](#team-coordination-guidelines)
-10. [Progress Monitoring & Reporting](#progress-monitoring--reporting)
+1. [MVP実行戦略](#mvp実行戦略)
+2. [段階的実装計画](#段階的実装計画)  
+3. [リスク管理戦略](#リスク管理戦略)
+4. [品質保証タイムライン](#品質保証タイムライン)
+5. [意思決定フレームワーク](#意思決定フレームワーク)
+6. [進捗監視](#進捗監視)
+7. [コンティンジェンシー計画](#コンティンジェンシー計画)
+
+---
+
+## MVP実行戦略
+
+### 価値提供の優先順位
+```mermaid
+graph LR
+    A[30分: 動作] --> B[+1時間: 品質] --> C[+1時間: セキュリティ] --> D[必要時: 完全機能]
+    A --> E[即座の価値提供]
+    B --> F[基本的な信頼性]
+    C --> G[最小限のセキュリティ]
+    D --> H[エンタープライズレディ]
+```
+
+### 段階的価値実現
+```yaml
+Phase 0 - 30分後:
+  value: "動作するWebhookサーバー"
+  users: "開発者、テスター"
+  roi: "即座のフィードバック開始"
+
+Phase 1 - 1.5時間後:
+  value: "信頼性のあるWebhookサーバー"  
+  users: "開発チーム"
+  roi: "継続的な開発可能"
+
+Phase 2 - 2.5時間後:
+  value: "セキュアなWebhookサーバー"
+  users: "プロダクション利用"
+  roi: "本格運用開始可能"
+
+Phase 3 - 必要時:
+  value: "エンタープライズ対応"
+  users: "大規模チーム、複雑要件"
+  roi: "スケーラブルな運用"
+```
+
+---
+
+## 段階的実装計画
+
+### Phase 0: MVP基盤 (30分)
+
+**実行タイムライン:**
+```
+0-10分: main.go作成、基本ハンドラー実装
+10-20分: JSON処理、ファイル保存機能追加  
+20-25分: 動作確認 (go run main.go)
+25-30分: curlテスト、動作検証
+```
+
+**成果物:**
+- [ ] 動作するHTTPサーバー (50行程度)
+- [ ] JSON webhook受信機能
+- [ ] ファイル保存機能
+- [ ] 基本的なエラーハンドリング
+
+**完了基準:**
+```bash
+curl -X POST localhost:8080/webhook -d '{"test":"data"}' 
+# → 200 OK、ファイル作成を確認
+```
+
+**リスク要因:**
+- Go開発環境の問題 (事前確認で回避)
+- ポート競合 (環境変数で対応)
+
+### Phase 1: 基本品質向上 (1時間)
+
+**実行タイムライン:**
+```
+0-20分: titleフィールド必須化、バリデーション追加
+20-40分: storageディレクトリ作成、ファイル名改善
+40-50分: ヘルスチェックエンドポイント追加
+50-60分: 基本テスト作成、品質チェック実行
+```
+
+**成果物:**
+- [ ] 入力バリデーション
+- [ ] ディレクトリ管理
+- [ ] ヘルスチェック機能
+- [ ] 基本的な単体テスト
+
+**完了基準:**
+```bash
+go vet ./... # → エラーなし
+go test -v ./... # → テスト成功
+curl localhost:8080/health # → healthy レスポンス
+```
+
+**リスク要因:**
+- テスト作成の複雑化 (最小限に留める)
+- 機能追加の過剰化 (厳格なスコープ管理)
+
+### Phase 2: セキュリティ基盤 (1時間)
+
+**実行タイムライン:**
+```
+0-30分: ファイル名サニタイゼーション実装
+30-45分: パストラバーサル防止、セキュリティテスト
+45-55分: 環境変数サポート、設定外部化
+55-60分: セキュリティ品質チェック、本格テスト
+```
+
+**成果物:**
+- [ ] セキュアなファイル名処理
+- [ ] パストラバーサル攻撃防止
+- [ ] 環境変数ベース設定
+- [ ] セキュリティテスト
+
+**完了基準:**
+```bash
+curl -X POST localhost:8080/webhook -d '{"title":"../../../etc/passwd"}'
+# → 攻撃を無害化、安全なファイル作成確認
+
+golangci-lint run --fast # → セキュリティ問題なし
+```
+
+**リスク要因:**
+- セキュリティ実装の複雑化 (最小限の対策に集中)
+- 過剰なテストケース (主要攻撃ベクターに限定)
+
+### Phase 3: 拡張機能 (必要性駆動)
+
+**トリガーベース実装:**
+```yaml
+authentication:
+  trigger: "外部公開が必要になった時"
+  effort: "2-4時間"
+  implementation: "APIキー認証"
+
+structured_logging:  
+  trigger: "デバッグが困難になった時"
+  effort: "1-2時間"
+  implementation: "JSON構造化ログ"
+
+configuration_management:
+  trigger: "設定項目が5個を超えた時" 
+  effort: "2-3時間"
+  implementation: "YAML設定、Viper"
+
+full_solid_architecture:
+  trigger: "コードが300行を超えた時"
+  effort: "1-2日"
+  implementation: "internal/パッケージ構造"
+
+team_development:
+  trigger: "3人以上での開発が必要な時"
+  effort: "2-3日"  
+  implementation: "完全なSOLID設計"
+```
+
+---
+
+## リスク管理戦略
+
+### 段階的リスク軽減
+```yaml
+Phase 0 リスク:
+  - 技術的実現可能性: LOW (標準ライブラリのみ)
+  - 要件変更: LOW (最小機能のみ)
+  - 統合リスク: LOW (外部依存なし)
+
+Phase 1 リスク:
+  - 機能追加複雑化: MEDIUM (スコープ管理で対応)
+  - テスト作成負荷: MEDIUM (最小限テストで対応)
+
+Phase 2 リスク:  
+  - セキュリティ実装複雑化: MEDIUM (主要脅威のみ対応)
+  - 設定管理複雑化: LOW (環境変数のみ)
+
+Phase 3 リスク:
+  - オーバーエンジニアリング: HIGH (需要駆動で対応)
+  - 技術的負債: MEDIUM (リファクタリング計画で対応)
+```
+
+### リスク対応戦略
+```yaml
+オーバーエンジニアリング防止:
+  - 各機能実装前にビジネス価値確認
+  - "将来必要かも"は実装判断から除外
+  - 最小限実装の徹底
+
+品質 vs スピードの バランス:
+  - Phase毎に適切な品質基準設定
+  - 品質負債の意図的管理
+  - 継続的リファクタリング計画
+
+要件クリープ防止:
+  - Phase毎の明確な完了基準
+  - ステークホルダーとの期待値調整  
+  - 追加機能要求の次Phase延期
+```
+
+---
+
+## 品質保証タイムライン
+
+### 段階的品質基準
+```yaml
+Phase 0 品質基準:
+  testing: "手動テストのみ"
+  code_quality: "動作することが最優先"
+  security: "基本的なエラーハンドリングのみ"
+  documentation: "README更新"
+
+Phase 1 品質基準:
+  testing: "基本的な単体テスト"
+  code_quality: "go vet通過"
+  security: "入力バリデーション"
+  documentation: "使用方法追記"
+
+Phase 2 品質基準:
+  testing: "セキュリティテスト含む"
+  code_quality: "golangci-lint通過"
+  security: "主要攻撃ベクター対応"  
+  documentation: "セキュリティガイド"
+
+Phase 3 品質基準:
+  testing: "80%+ カバレッジ"
+  code_quality: "全品質ゲート通過"
+  security: "包括的セキュリティ監査"
+  documentation: "完全な運用マニュアル"
+```
+
+### 品質保証スケジュール
+```mermaid
+gantt
+    title MVP品質保証タイムライン
+    dateFormat X
+    axisFormat %M分
+
+    section Phase 0
+    実装          :0, 25
+    動作確認      :25, 30
+
+    section Phase 1  
+    機能追加      :30, 70
+    品質チェック  :70, 90
+
+    section Phase 2
+    セキュリティ  :90, 120
+    最終品質確認  :120, 150
+
+    section Phase 3
+    必要時拡張    :crit, 150, 300
+```
 
 ---
 
