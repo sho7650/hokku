@@ -39,40 +39,43 @@ import (
 )
 
 func main() {
-    // webhookエンドポイント
-    http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
-        // リクエストボディを読む
-        body, err := io.ReadAll(r.Body)
-        if err != nil {
-            http.Error(w, "Cannot read body", 400)
-            return
-        }
-        
-        // JSONかどうか確認
-        var data map[string]interface{}
-        if err := json.Unmarshal(body, &data); err != nil {
-            http.Error(w, "Invalid JSON", 400)
-            return
-        }
-        
-        // ファイルに保存
-        filename := fmt.Sprintf("webhook_%d.json", time.Now().Unix())
-        if err := os.WriteFile(filename, body, 0644); err != nil {
-            http.Error(w, "Cannot save file", 500)
-            return
-        }
-        
-        // 成功レスポンス
-        w.WriteHeader(200)
-        json.NewEncoder(w).Encode(map[string]string{
-            "status": "saved",
-            "file": filename,
-        })
-    })
+    // webhookエンドポイント (Google Go Style Guide準拠: 関数分離)
+    http.HandleFunc("/webhook", handleWebhook)
     
     // サーバー起動
     fmt.Println("Server starting on :8080")
     http.ListenAndServe(":8080", nil)
+}
+
+// handleWebhook はWebhookリクエストを処理する (Google準拠: 単一責任)
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
+    // リクエストボディを読む (Google準拠: エラーハンドリング)
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Cannot read body", 400)
+        return
+    }
+    
+    // JSONかどうか確認 (Google準拠: エラーハンドリング)
+    var data map[string]interface{}
+    if err := json.Unmarshal(body, &data); err != nil {
+        http.Error(w, "Invalid JSON", 400)
+        return
+    }
+    
+    // ファイルに保存 (Google準拠: エラーハンドリング)
+    filename := fmt.Sprintf("webhook_%d.json", time.Now().Unix())
+    if err := os.WriteFile(filename, body, 0644); err != nil {
+        http.Error(w, "Cannot save file", 500)
+        return
+    }
+    
+    // 成功レスポンス
+    w.WriteHeader(200)
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "saved",
+        "file":   filename,
+    })
 }
 ```
 

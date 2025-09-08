@@ -117,34 +117,37 @@ import (
 )
 
 func main() {
-    http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
-        body, err := io.ReadAll(r.Body)
-        if err != nil {
-            http.Error(w, "Cannot read body", 400)
-            return
-        }
-        
-        var data map[string]interface{}
-        if err := json.Unmarshal(body, &data); err != nil {
-            http.Error(w, "Invalid JSON", 400)
-            return
-        }
-        
-        filename := fmt.Sprintf("webhook_%d.json", time.Now().Unix())
-        if err := os.WriteFile(filename, body, 0644); err != nil {
-            http.Error(w, "Cannot save file", 500)
-            return
-        }
-        
-        w.WriteHeader(200)
-        json.NewEncoder(w).Encode(map[string]string{
-            "status": "saved",
-            "file": filename,
-        })
-    })
-    
+    // Google Go Style Guide準拠: 関数分離による単一責任
+    http.HandleFunc("/webhook", handleWebhook)
     fmt.Println("Server starting on :8080")
     http.ListenAndServe(":8080", nil)
+}
+
+// handleWebhook はWebhookリクエストを処理する (Google準拠設計)
+func handleWebhook(w http.ResponseWriter, r *http.Request) {
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Cannot read body", 400)
+        return
+    }
+    
+    var data map[string]interface{}
+    if err := json.Unmarshal(body, &data); err != nil {
+        http.Error(w, "Invalid JSON", 400)
+        return
+    }
+    
+    filename := fmt.Sprintf("webhook_%d.json", time.Now().Unix())
+    if err := os.WriteFile(filename, body, 0644); err != nil {
+        http.Error(w, "Cannot save file", 500)
+        return
+    }
+    
+    w.WriteHeader(200)
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "saved",
+        "file":   filename,
+    })
 }
 ```
 
