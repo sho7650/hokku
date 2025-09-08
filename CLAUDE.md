@@ -2,121 +2,199 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ 重要：実装アプローチの根本的方針
+
+### 最優先原則：MVP優先・YAGNI徹底
+
+```
+1. 動く最小版から始める（50行のmain.go）
+2. 問題が発生してから対処する
+3. 必要になるまで抽象化しない
+4. インターフェースは最後の手段
+5. YAGNI > DRY > SOLID
+```
+
+### 実装の判断基準
+
+```mermaid
+graph TD
+    A[新機能] --> B{今必要？}
+    B -->|No| C[実装しない]
+    B -->|Yes| D{10分で実装可能？}
+    D -->|Yes| E[すぐ実装]
+    D -->|No| F[最小限で実装]
+```
+
+**詳細な方針は以下を参照：**
+- `docs/IMPLEMENTATION_APPROACH.md` - MVP優先実装戦略
+- `docs/SOLID_YAGNI_COMPLIANT_DESIGN_REVISED.md` - 段階的進化型設計
+- `docs/IMPLEMENTATION_WORKFLOW_REVISED.md` - MVP優先ワークフロー
+- `docs/PROJECT_EXECUTION_PLAN_REVISED.md` - 現実的な実行計画
+
 ## Project Overview
 
-Hokku is a Go-based webhook receiver that saves JSON payloads as files. It's designed for CI/CD integration, notifications, and log collection with built-in security features.
+Hokku is a **simple** Go-based webhook receiver that saves JSON payloads as files. Starting from a minimal 50-line implementation and growing only as needed.
 
-- **Default Port**: 20023
+- **初期実装**: 50行のmain.go
 - **Go Version**: 1.21+
-- **Main Dependencies**: gin-gonic/gin, zap, viper, validator/v10
+- **初期依存**: 標準ライブラリのみ（外部依存なし）
+- **段階的追加**: 必要になったら機能追加
 
 ## Essential Commands
 
-### Development Workflow
+### 最速で動かす
 ```bash
-# Initialize project (first time setup)
-go mod download
+# 方法1: 直接実行（最速）
+go run cmd/hokku/main.go
 
-# Run application
-make run
+# 方法2: デモスクリプト（テスト付き）
+./run_demo.sh
 
-# Build binary
-make build
-
-# Run with hot reload (development)
-make dev
-
-# Run tests
-make test
-
-# Run specific test
-go test -v -run TestFileWriter ./internal/service/...
-
-# View test coverage
-make test-coverage
-
-# Lint code
-make lint
-
-# Clean build artifacts
-make clean
+# 方法3: ビルドして実行
+go build -o bin/hokku cmd/hokku/main.go
+./bin/hokku
 ```
 
-### Quality Checks Before Committing
+### テスト（必要になったら）
 ```bash
-go fmt ./...
-go vet ./...
-make lint
-make test
+# 手動テスト優先
+curl -X POST localhost:8080/webhook -d '{"title":"test","data":{}}'
+
+# 自動テスト（バグが出たら追加）
+go test ./...
 ```
 
-## Architecture Overview
+## Architecture Evolution（段階的進化）
 
-**For detailed architecture and design documentation, see `/docs/` directory:**
+### Stage 0: 単一ファイル（推奨開始点）
+```
+hokku/
+└── main.go              # 全て（50行）
+```
 
-- `docs/SOLID_YAGNI_COMPLIANT_DESIGN.md` - Final SOLID/YAGNI compliant design specification
-- `docs/PRACTICAL_DESIGN.md` - Simplified practical design after user feedback  
-- `docs/IMPROVED_DESIGN.md` - Initial Clean Architecture design (deprecated)
-- `SPECIFICATION.md` - Complete project specification in Japanese
+### Stage 1: 基本分割（200行超えたら）
+```
+hokku/
+├── main.go              # エントリーポイント
+├── handler.go           # ハンドラ
+└── storage.go           # ストレージ
+```
 
-**For implementation planning and project management:**
+### Stage 2: パッケージ化（1000行超えたら）
+```
+hokku/
+├── cmd/hokku/main.go
+├── internal/handler/
+└── internal/storage/
+```
 
-- `docs/IMPLEMENTATION_WORKFLOW.md` - Comprehensive 5-phase TDD implementation workflow
-- `docs/PROJECT_EXECUTION_PLAN.md` - Detailed project management with critical path analysis
-- `docs/QUALITY_GATES_FRAMEWORK.md` - 6-gate quality assurance and validation system
+### Stage X: SOLID適用（本当に必要になったら）
+- インターフェース定義
+- 依存性注入
+- 抽象化層
 
-### Quick Architecture Summary
+## 実装の優先順位
 
-The application follows SOLID principles with interface-based dependency injection:
+### 必須機能（Phase 0）
+- [x] webhook受信
+- [x] JSON保存
+- [x] 基本エラー処理
 
-1. **Request Flow**: 
-   - Client → Gin Router → Auth Middleware → Validator → FileStore → File System
-   - All operations logged via structured logging (zap)
+### 改善（問題が出たら）
+- [ ] ディレクトリ整理
+- [ ] ログ追加
+- [ ] 設定外部化
 
-2. **SOLID-Compliant Package Organization**:
-   - `cmd/hokku/`: Application entry point  
-   - `internal/app/`: Application composition with DI
-   - `internal/handler/`: HTTP handlers implementing single responsibilities
-   - `internal/service/`: Core business logic with interface segregation
-   - `internal/middleware/`: Cross-cutting concerns
-   - `internal/model/`: Data models
-   - `pkg/errors/`: Custom error types with Google Go style
+### 将来（必要になったら）
+- [ ] 認証
+- [ ] データベース
+- [ ] 非同期処理
+- [ ] メトリクス
 
-3. **Key Design Principles Applied**:
-   - **SRP**: Each component has single responsibility
-   - **DIP**: Depend on interfaces, not concrete types
-   - **ISP**: Small, focused interfaces (FileStore, PayloadValidator)
-   - **YAGNI**: Only implement current requirements, no speculative features
-   - **Google Go Style**: Sentinel errors, proper error wrapping
+## Error Handling（シンプルに）
 
-## Testing Strategy
-
-The project uses table-driven tests with testify framework:
-
-- Unit tests in `test/unit/`
-- Integration tests in `test/integration/`
-- Test data in `test/testdata/`
-- Target coverage: 80%+
-
-## API Endpoints
-
-- `POST /webhook` - Main webhook receiver (requires auth)
-- `GET /health` - Health check endpoint
-- `GET /metrics` - Metrics endpoint (future implementation)
-
-## Error Handling Pattern
-
-Early return pattern with wrapped errors for context:
+### 初期段階
 ```go
 if err != nil {
-    return "", fmt.Errorf("operation failed: %w", err)
+    http.Error(w, "Error", 500)
+    return
 }
 ```
 
-## Key Implementation Files
+### 必要になったら
+```go
+if err != nil {
+    log.Printf("Error: %v", err)
+    http.Error(w, err.Error(), 500)
+    return
+}
+```
 
-When implementing features, focus on these core files:
-- `internal/handler/webhook.go` - Main webhook handler logic
-- `internal/service/file_writer.go` - File system operations
-- `internal/util/security.go` - Path validation and security checks
-- `internal/middleware/auth.go` - Authentication logic
+## Testing Strategy（段階的）
+
+### Stage 0: 手動テストのみ
+```bash
+curl -X POST localhost:8080/webhook -d @test.json
+```
+
+### Stage 1: バグが出た箇所のみテスト
+```go
+func TestBuggyFunction(t *testing.T) {
+    // バグの再現テスト
+}
+```
+
+### Stage 2: 重要な部分のみテスト
+- エッジケース
+- セキュリティ
+- データ破損リスク
+
+## API Endpoints（最小限）
+
+### 初期実装
+- `POST /webhook` - Webhook受信
+
+### 必要になったら追加
+- `GET /health` - ヘルスチェック
+- `GET /metrics` - メトリクス
+
+## Key Implementation Files（現在の実装）
+
+### Phase 0-2で作成済み
+- `cmd/hokku/main.go` - 簡易版エントリーポイント（動作確認用）
+- `internal/service/filestore.go` - ファイル保存（過剰実装の例）
+- `internal/service/validator.go` - バリデーション（過剰実装の例）
+- `pkg/security/path.go` - セキュリティ（過剰実装の例）
+
+### 本来の最小実装
+```go
+// 50行のmain.goだけで十分だった
+package main
+// ... 最小実装
+```
+
+## アンチパターン回避
+
+### ❌ やってはいけないこと
+- 最初からインターフェース定義
+- 使わない機能の実装
+- 過剰な抽象化
+- 完璧主義
+- 将来の拡張性への過剰な配慮
+
+### ✅ やるべきこと
+- 動くコード優先
+- 問題が起きてから対処
+- シンプルさを保つ
+- 実用主義
+- YAGNI徹底
+
+## まとめ
+
+**「完璧な設計」より「動くコード」**
+
+1. 30分で動くものを作る
+2. 実際に使って問題を発見
+3. 必要最小限の改善
+4. リファクタリングは最後
+5. 抽象化は本当に必要になってから

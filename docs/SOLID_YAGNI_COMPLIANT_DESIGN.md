@@ -1,95 +1,215 @@
-# Hokku - SOLID/YAGNI準拠設計仕様書
+# Hokku - MVP優先・段階的SOLID設計仕様書
 
 ## 概要
-SOLID原則とYAGNI原則、およびGoogleのGoスタイルガイドに準拠したHokkuの設計です。
+MVPアプローチを採用し、SOLID原則とYAGNI原則を段階的に適用するHokkuの設計です。
 
-## SOLID原則の適用状況
+## 設計哲学：動く→改善→抽象化
 
-### ✅ Single Responsibility Principle (SRP)
-各構造体・パッケージが単一の責任を持つよう設計：
-- `WebhookHandler`: Webhook リクエスト処理のみ
-- `FileWriter`: ファイル書き込みのみ
-- `Validator`: 入力検証のみ
-- `Config`: 設定管理のみ
+### ❌ 従来の間違ったアプローチ
+```
+1. インターフェース定義から開始
+2. 抽象化層の構築  
+3. 依存性注入の実装
+4. やっとHTTPハンドラ実装
+5. ようやく動作確認
+```
 
-### ✅ Open/Closed Principle (OCP)  
-インターフェースによる拡張性を確保：
+### ✅ MVPアプローチ（段階的SOLID適用）
+```
+Phase 0: 動作する最小コード（YAGNI重視）
+Phase 1: 基本品質向上（SRP部分適用）
+Phase 2: 必要な抽象化（OCP適用）
+Phase 3: 完全なSOLID適用（LSP, ISP, DIP）
+```
+
+## 段階的SOLID適用戦略
+
+### Phase 0: 動作最優先（YAGNI徹底）
+**目標**: とにかく動くものを作る（30分）
+**SOLID適用度**: 0% - 動作が最優先
+
 ```go
-// 将来的な拡張性を考慮したインターフェース定義
-type FileStore interface {
-    Write(payload *model.WebhookPayload) (string, error)
-}
-
-type Validator interface {
-    ValidatePayload(payload *model.WebhookPayload) error
+// 単一ファイル、最小限の機能
+// SOLID原則よりも動作を優先
+func main() {
+    http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
+        // 最小限の実装
+    })
+    http.ListenAndServe(":8080", nil)
 }
 ```
 
-### ✅ Liskov Substitution Principle (LSP)
-インターフェースの実装で契約を維持
+### Phase 1: 基本的品質向上（SRP部分適用）
+**目標**: 最低限の責任分離（1時間）
+**SOLID適用度**: 20% - SRPの基本的な適用
 
-### ✅ Interface Segregation Principle (ISP)  
-小さく特化したインターフェースを定義
+```go
+// 関数レベルでの責任分離
+func handleWebhook(w http.ResponseWriter, r *http.Request) {}
+func saveFile(data []byte, filename string) error {}
+func validateInput(data map[string]interface{}) error {}
+```
 
-### ✅ Dependency Inversion Principle (DIP)
-具象型ではなくインターフェースに依存
+### Phase 2: 必要な抽象化（OCP適用）
+**目標**: 拡張性が必要になった箇所のみ抽象化（1時間）  
+**SOLID適用度**: 40% - SRP完全 + OCP部分適用
 
-## 1. 最適化されたプロジェクト構造
+```go
+// 必要性が明確になったもののみインターフェース化
+type FileStorage interface {
+    Save(data []byte, filename string) error
+}
 
+// まだ必要ない抽象化は行わない
+// type Validator interface {} // ❌ まだ不要
+```
+
+### Phase 3: 完全なSOLID適用（必要に応じて）
+**目標**: テスタビリティとモジュール性が必要になったら
+**SOLID適用度**: 100% - 全SOLID原則の適用
+
+```go
+// この段階でようやく完全な抽象化
+type FileWriter interface {
+    Write(ctx context.Context, payload *WebhookPayload) (string, error)
+}
+
+type Validator interface {
+    Validate(payload *WebhookPayload) error
+}
+
+// 依存性注入
+func NewWebhookHandler(fw FileWriter, v Validator) *WebhookHandler
+```
+
+## 段階的プロジェクト構造の進化
+
+### Phase 0: 最小構造
+```
+hokku/
+└── main.go                     # 全機能をここに（50行程度）
+```
+
+### Phase 1: 基本的な分離  
+```
+hokku/
+├── main.go                     # エントリーポイント
+├── handlers.go                 # ハンドラ関数
+└── utils.go                    # ヘルパー関数
+```
+
+### Phase 2: 必要な抽象化後
+```
+hokku/
+├── main.go                     # エントリーポイント  
+├── webhook.go                  # Webhook処理
+├── storage.go                  # ファイル保存
+└── validation.go               # バリデーション（必要になったら）
+```
+
+### Phase 3: 完全なSOLID構造（必要性が明確になったら）
 ```
 hokku/
 ├── cmd/
 │   └── hokku/
 │       └── main.go              # エントリーポイント
 ├── internal/
-│   ├── app/
-│   │   └── app.go              # アプリケーション構成
-│   ├── config/
-│   │   └── config.go           # 設定管理（Viper）
 │   ├── handler/
-│   │   ├── webhook.go          # Webhookハンドラー
-│   │   ├── health.go           # ヘルスチェック
-│   │   └── response.go         # レスポンスヘルパー
-│   ├── middleware/
-│   │   ├── auth.go             # 認証ミドルウェア
-│   │   ├── logger.go           # ロギングミドルウェア
-│   │   └── recovery.go         # リカバリーミドルウェア
-│   ├── model/
-│   │   └── webhook.go          # データモデル
-│   └── service/
-│       ├── interfaces.go       # サービスインターフェース
-│       ├── filestore.go        # ファイル保存実装
-│       └── validator.go        # バリデーション実装
-├── pkg/
-│   ├── errors/                 # カスタムエラー
-│   │   └── errors.go           
-│   └── security/               # セキュリティユーティリティ
-│       └── path.go             
-└── test/                       # テスト
+│   │   └── webhook.go          # Webhookハンドラー
+│   ├── service/
+│   │   ├── interfaces.go       # サービスインターフェース（必要な箇所のみ）
+│   │   ├── filestore.go        # ファイル保存実装
+│   │   └── validator.go        # バリデーション実装
+│   └── model/
+│       └── webhook.go          # データモデル
+└── test/                       # テスト（必要に応じて）
 ```
 
-## 2. SOLID準拠のインターフェース設計
+## YAGNI原則の徹底適用
 
-### 2.1 サービス層インターフェース
+### ❌ 最初から実装してはいけないもの
 ```go
-// internal/service/interfaces.go
-package service
+// ❌ 早すぎる抽象化
+type Storage interface {
+    Save(data []byte) error
+}
+type FileStorage struct{}
+type S3Storage struct{}  // 使わないのに定義
 
-import "hokku/internal/model"
-
-// FileStore は単一の責任（ファイル保存）を持つ (SRP)
-type FileStore interface {
-    Write(payload *model.WebhookPayload) (string, error)
+// ❌ 過剰な設定可能性  
+type Config struct {
+    Port                int
+    StoragePath         string
+    MaxFileSize         int64
+    MinFileSize         int64    // 使わない
+    AllowedExtensions   []string // 使わない
+    RetryCount          int      // 使わない
+    // ... 50個の設定項目
 }
 
-// PayloadValidator は単一の責任（検証）を持つ (SRP) 
-type PayloadValidator interface {
-    Validate(payload *model.WebhookPayload) error
+// ❌ 将来の拡張性への過剰な配慮
+type Plugin interface {
+    Process(data []byte) ([]byte, error)
+}
+```
+
+### ✅ 段階的実装（必要になってから）
+```go
+// Phase 0: 直接実装
+func saveToFile(data []byte, filename string) error {
+    return os.WriteFile(filename, data, 0644)
 }
 
-// HealthChecker は単一の責任（ヘルスチェック）を持つ (SRP)
-type HealthChecker interface {
-    Check() map[string]interface{}
+// Phase 1: 基本的な設定
+port := "8080"
+storagePath := "./storage"
+
+// Phase 2: 必要性が明確になったら設定構造体
+type Config struct {
+    Port        string  // 実際に使用
+    StoragePath string  // 実際に使用
+    // 他は必要になってから追加
+}
+
+// Phase 3: 本当に必要になったらインターフェース
+type FileStorage interface {
+    Save(data []byte, filename string) error
+}
+```
+
+## 段階的実装例
+
+### Phase 0実装例（10行）
+```go
+http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
+    body, _ := io.ReadAll(r.Body)
+    os.WriteFile("webhook.json", body, 0644)
+    w.WriteHeader(200)
+})
+```
+
+### Phase 1実装例（+5行のエラーハンドリング）
+```go
+http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Cannot read", 400)
+        return
+    }
+    if err := os.WriteFile("webhook.json", body, 0644); err != nil {
+        http.Error(w, "Cannot save", 500)
+        return
+    }
+    w.WriteHeader(200)
+})
+```
+
+### Phase 2実装例（+5行のJSONバリデーション）
+```go
+var data map[string]interface{}
+if err := json.Unmarshal(body, &data); err != nil {
+    http.Error(w, "Invalid JSON", 400)
+    return
 }
 ```
 
